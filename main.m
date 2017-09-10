@@ -55,21 +55,49 @@ fprintf('Sphere of radius %d m: lift: %d N, drag: %d N.\n', radius, lift, drag);
 clear all;
 load Cp;
 
-airfoil = @(x, c) (0.12 .* c ./ 0.2) .* (0.2969.*sqrt(x./c) - 0.126.*sqrt(x./c) - 0.3516.*(x./c).^2 + 0.2843.*(x./c).^3 - 0.1036.*(x./c).^4); % airfoil polynomial
+% airfoil polynomial
+airfoil = @(x, c) (0.12 .* c ./ 0.2) .* (0.2969.*sqrt(x./c) - 0.126.*sqrt(x./c) - 0.3516.*(x./c).^2 + 0.2843.*(x./c).^3 - 0.1036.*(x./c).^4);
 
 alpha = 9; % degrees
 chord = 0.5; % meters
 airfoil = @(x) airfoil(x, chord);
 
-
 truth_iterations = 50000; % fifty thousand iterations for 'truth' measurement
-true_lift = estimate_lift(Cp_upper, Cp_lower, alpha, truth_iterations);
+[true_lift, true_drag] = estimate_lift(Cp_upper, Cp_lower, alpha, truth_iterations);
 
-fprintf('Airfoil produces %.1f N of lift per unit span at %d degrees AoA.\n', true_lift, alpha);
+fprintf('Airfoil produces %.1f N of lift and %0.1f N of drag per unit span at %d degrees AoA.\n', ...
+         true_lift, true_drag, alpha);
 
 % Progressively increase the number of iterations and get the error of that estimate
-for n = 5:5:200
-  lift = estimate_lift(Cp_upper, Cp_lower, alpha, n);
-  percent_err = 100*abs((true_lift - lift)/true_lift);
-  fprintf('%d panels: %f %% error \n', n, percent_err);
+errs        = [];
+n           = 15;
+percent_err = 100;
+while percent_err > 5 % 5% error
+  [lift, drag]   = estimate_lift(Cp_upper, Cp_lower, alpha, n);
+  percent_err    = 100*abs((true_lift - lift)/true_lift);
+  errs(:, end+1) = [n; percent_err];
+  n = n + 1;
 end
+fprintf('%d panels: %f %% error \n', n, percent_err);
+
+while percent_err > 1 % 1% error
+  [lift, drag]   = estimate_lift(Cp_upper, Cp_lower, alpha, n);
+  percent_err    = 100*abs((true_lift - lift)/true_lift);
+  errs(:, end+1) = [n; percent_err];
+  n = n + 1;
+end
+fprintf('%d panels: %f %% error \n', n, percent_err);
+
+while percent_err > 0.1 % 0.1% error
+  [lift, drag]   = estimate_lift(Cp_upper, Cp_lower, alpha, n);
+  percent_err    = 100*abs((true_lift - lift)/true_lift);
+  errs(:, end+1) = [n; percent_err];
+  n = n + 5;
+end
+fprintf('%d panels: %f %% error \n', n, percent_err);
+
+plot(errs(1, :), errs(2, :));
+title('Percent error versus number of points used in simulation');
+xlabel('Number of points used');
+ylabel('Percent error');
+print('err_vs_num', '-dpng');
