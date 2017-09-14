@@ -49,7 +49,7 @@ function [N, A] = estimate_n_a(cp_upper, cp_lower, n_iters)
     y_2 = -y(k+1);
 
     dx  = x_2 - x_1;
-    dy  = y_2 - y_1;
+    dy  = -(y_2 - y_1);
 
     Cp_1 = fnval(cp_lower, x_1/chord);
     Cp_2 = fnval(cp_lower, x_2/chord);
